@@ -1,27 +1,59 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow strict-local
- */
+import React, { useEffect, useState } from 'react';
+import { Alert, Button, Text, TextInput, View } from 'react-native';
+import auth from '@react-native-firebase/auth';
 
-import react, { useEffect } from 'react';
-import { View, Button } from 'react-native';
-import analytics from '@react-native-firebase/analytics'; 
+const App = () => {
+  //for testing.
+  const [initializing, setInitializing] = useState(true);
+  const [user, setUser] = useState(null);
+  const [confirm, setConfirm] = useState(null);
+  const [code, setCode] = useState('');
 
-function App() {
+  const onAuthStateChanged = (user) => {
+    setUser(user);
+    if (initializing) setInitializing(false);
+  }
+
+  useEffect(() => {
+    return auth().onAuthStateChanged(onAuthStateChanged);
+  }, []);
+
+  if (initializing) return null;
+  
+
+  const signInWithPhoneNumber = async(phoneNumber) => {
+    const confirmation = await auth().signInWithPhoneNumber(phoneNumber).catch(err => Alert.alert(err));
+    setConfirm(confirmation);
+  }
+
+  async function confirmCode() {
+    try {
+      await confirm.confirm(code);
+    } catch (error) {
+      Alert.alert('Invalid code.'); 
+    }
+  }
+
+  if (!confirm && user == null) {
+    return (
+      <View style={{flex: 1, justifyContent: 'center' , alignItems: 'center'}}>
+        <Button title="Phone Number Sign In" onPress={() => signInWithPhoneNumber('+976 <add your phone number here.>')}/>
+      </View>
+    );
+  }
+
   return (
     <View style={{flex: 1, justifyContent: 'center' , alignItems: 'center'}}>
-      <Button
-        title="Press me"
-        onPress={async () =>
-          await analytics().logSelectContent({
-            content_type: 'clothing',
-            item_id: 'abcd',
-          })
-        }
-      />
+      <View style={{display: user != null ? 'flex' : 'none' , justifyContent: 'center' , alignItems: 'center'}}> 
+      <Text>Welcome User</Text>
+      <Text>Client Phone Number: {user?.phoneNumber.slice(4, 12)}</Text>
+      <View style={{marginBottom: 10}}/>
+      <Button title='Log out.' onPress={() => auth().signOut().then(() => Alert.alert(`Have a nice day! User: ${user?.phoneNumber.slice(4, 12)}`))}/>
+      </View>
+      <View style={{display: user != null ? 'none' : 'flex'}}> 
+      <TextInput value={code} onChangeText={text => setCode(text)} style={{width: 150 , height: 50 , backgroundColor: 'black' , marginBottom: 20 , color: 'white'}}/>
+      <Button title="Confirm Code" onPress={() => confirmCode()} />
+      </View>
     </View>
   );
 }
